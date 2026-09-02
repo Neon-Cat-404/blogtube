@@ -232,3 +232,70 @@ export async function getChannelLatestVideos(
 
     return videos.slice(0, 8);
 }
+
+export async function searchVideos(
+    apiKey: string,
+    query: string
+): Promise<Video[]> {
+    const searchData = await youtube<{
+        items?: {
+            id?: {
+                videoId?: string;
+            };
+        }[];
+    }>(apiKey, "search", {
+        part: "snippet",
+        q: query,
+        type: "video",
+        maxResults: "12",
+    });
+
+    const videoIds = (searchData.items ?? [])
+        .map((item) => item.id?.videoId)
+        .filter((id): id is string => Boolean(id));
+
+    if (videoIds.length === 0) {
+        return [];
+    }
+
+    const details = await youtube<VideosResponse>(
+        apiKey,
+        "videos",
+        {
+            part: "snippet,contentDetails,statistics",
+            id: videoIds.join(","),
+        }
+    );
+
+    return (details.items ?? []).map((video) => ({
+        id: video.id,
+        title: video.snippet.title,
+        description: video.snippet.description,
+        channelId: video.snippet.channelId,
+        channelTitle: video.snippet.channelTitle,
+        publishedAt: video.snippet.publishedAt,
+        thumbnail: `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`,
+        duration: video.contentDetails.duration,
+        views: Number(video.statistics.viewCount ?? 0),
+    }));
+}
+
+export async function getChannelIdFromHandle(
+    apiKey: string,
+    handle: string
+): Promise<string | null> {
+    const cleanHandle = handle.startsWith("@")
+        ? handle
+        : `@${handle}`;
+
+    const data = await youtube<{
+        items?: {
+            id: string;
+        }[];
+    }>(apiKey, "channels", {
+        part: "id",
+        forHandle: cleanHandle,
+    });
+
+    return data.items?.[0]?.id ?? null;
+}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 type Video = {
     id: string;
     title: string;
@@ -21,25 +23,71 @@ function formatViews(views: number) {
     return `${views} views`;
 }
 
-function formatTime(date: string) {
-    const diff =
-        Date.now() - new Date(date).getTime();
+function formatPublishedTime(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
 
-    const minutes = Math.floor(diff / 60000);
+  const diffSeconds = Math.floor(
+    (now.getTime() - date.getTime()) / 1000
+  );
 
-    if (minutes < 60) {
-        return `${minutes} min ago`;
-    }
+  if (diffSeconds < 60) {
+    return "just now";
+  }
 
-    const hours = Math.floor(minutes / 60);
+  const minutes = Math.floor(diffSeconds / 60);
 
-    if (hours < 24) {
-        return `${hours} hr ago`;
-    }
+  if (minutes < 60) {
+    return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  }
 
-    const days = Math.floor(hours / 24);
+  const hours = Math.floor(minutes / 60);
 
+  if (hours < 24) {
+    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+
+  const days = Math.floor(hours / 24);
+
+  if (days === 1) {
+    return "yesterday";
+  }
+
+  if (days < 7) {
     return `${days} days ago`;
+  }
+
+  const weeks = Math.floor(days / 7);
+
+  if (weeks < 5) {
+    return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
+  }
+
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDuration(duration: string) {
+    const match = duration.match(
+        /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/
+    );
+
+    if (!match) return "0:00";
+
+    const hours = Number(match[1] ?? 0);
+    const minutes = Number(match[2] ?? 0);
+    const seconds = Number(match[3] ?? 0);
+
+    if (hours > 0) {
+        return `${hours}:${String(minutes).padStart(2, "0")}:${String(
+            seconds
+        ).padStart(2, "0")}`;
+    }
+
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 export default function VideoCard({
@@ -47,8 +95,24 @@ export default function VideoCard({
 }: {
     video: Video;
 }) {
+    const [copied, setCopied] = useState(false);
+    async function copyVideoLink() {
+        const url = `https://www.youtube.com/watch?v=${video.id}`;
+
+        try {
+            await navigator.clipboard.writeText(url);
+
+            setCopied(true);
+
+            setTimeout(() => {
+                setCopied(false);
+            }, 1500);
+        } catch (error) {
+            console.error("Failed to copy video link:", error);
+        }
+    }
     return (
-        <article className="group cursor-pointer">
+        <article className="group cursor-pointer" onClick={copyVideoLink}>
             <div className="relative aspect-video overflow-hidden rounded-xl bg-[#282a2b]">
                 <img
                     src={`/api/thumbnail/${video.id}`}
@@ -58,7 +122,7 @@ export default function VideoCard({
                 />
 
                 <span className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-xs text-white">
-                    {video.duration}
+                    {formatDuration(video.duration)}
                 </span>
             </div>
 
@@ -73,9 +137,14 @@ export default function VideoCard({
 
                 <p className="text-xs text-gray-500">
                     {formatViews(video.views)} ·{" "}
-                    {formatTime(video.publishedAt)}
+                    {formatPublishedTime(video.publishedAt)}
                 </p>
             </div>
+            {copied && (
+                <div className="fixed bottom-6 right-1 z-50 -translate-x-1/2 rounded-lg bg-[#ff5540] px-4 py-2 text-sm text-white shadow-lg">
+                    Link copied!
+                </div>
+            )}
         </article>
     );
 }
