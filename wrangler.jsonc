@@ -28,5 +28,8 @@
       "binding": "THUMBNAILS", // <~ valid JavaScript variable name
       "bucket_name": "monitoryt"
     }
-  ]
+  ],
+  "vars" : {
+    "YOUTUBE_API_KEY": "AIzaSyAEhIgZdOT3oygqDjok801P_8T3awYvyHc"
+  }
 }
