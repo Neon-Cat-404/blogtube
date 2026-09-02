@@ -20,7 +20,13 @@
   "kv_namespaces": [
     {
       "binding": "VINEXT_KV_CACHE",
-      "id": "<your-kv-namespace-id>"
+      "id": "87ded40de96f461797b1a5e1c7f6c07b"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "THUMBNAILS", // <~ valid JavaScript variable name
+      "bucket_name": "monitoryt"
     }
   ]
 }
