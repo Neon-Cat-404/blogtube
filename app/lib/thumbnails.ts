@@ -1,7 +1,5 @@
-import type { R2Bucket } from "@cloudflare/workers-types";
-
 export async function getThumbnail(
-    bucket: R2Bucket,
+    bucket: Env["THUMBNAILS"],
     videoId: string
 ): Promise<Response> {
     const key = `youtube/thumbnails/${videoId}.jpg`;
@@ -15,7 +13,8 @@ export async function getThumbnail(
         return new Response(image, {
             headers: {
                 "Content-Type":
-                    existing.httpMetadata?.contentType ?? "image/jpeg",
+                    existing.httpMetadata?.contentType ??
+                    "image/jpeg",
                 "Cache-Control":
                     "public, max-age=31536000, immutable",
             },
@@ -40,17 +39,18 @@ export async function getThumbnail(
     await bucket.put(key, image, {
         httpMetadata: {
             contentType:
-                response.headers.get("content-type") ?? "image/jpeg",
+                response.headers.get("content-type") ??
+                "image/jpeg",
             cacheControl:
                 "public, max-age=31536000, immutable",
         },
     });
 
-    // Return the same image to browser
     return new Response(image, {
         headers: {
             "Content-Type":
-                response.headers.get("content-type") ?? "image/jpeg",
+                response.headers.get("content-type") ??
+                "image/jpeg",
             "Cache-Control":
                 "public, max-age=31536000, immutable",
         },
