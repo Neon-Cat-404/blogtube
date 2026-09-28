@@ -31,5 +31,22 @@
   ],
   "vars" : {
     "YOUTUBE_API_KEY": "AIzaSyAEhIgZdOT3oygqDjok801P_8T3awYvyHc"
-  }
+  },
+  "secrets_store_secrets": [
+    {
+      "binding": "SEARCH_NORMAL_PASSWORD",
+      "store_id": "683ddf8749c44f9c959e0ce5c581b524",
+      "secret_name": "SEARCH_NORMAL_PASSWORD"
+    },
+    {
+      "binding": "SEARCH_CHANNEL_PASSWORD",
+      "store_id": "683ddf8749c44f9c959e0ce5c581b524",
+      "secret_name": "SEARCH_CHANNEL_PASSWORD"
+    },
+    {
+      "binding": "SEARCH_AUTH_SECRET",
+      "store_id": "683ddf8749c44f9c959e0ce5c581b524",
+      "secret_name": "SEARCH_AUTH_SECRET"
+    }
+  ]
 }

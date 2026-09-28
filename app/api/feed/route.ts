@@ -6,10 +6,7 @@ import {
     getChannelIdFromHandle,
     searchVideos,
 } from "@/app/lib/youtube";
-import {
-    getAuthCookie,
-    verifyAuthToken,
-} from "@/app/lib/searchAuth";
+import { getAuthCookie, verifyAuthToken } from "@/app/lib/searchAuth";
 
 export async function GET(request: Request) {
     const url = new URL(request.url);
@@ -20,7 +17,9 @@ export async function GET(request: Request) {
     const query = url.searchParams.get("q");
 
     const searchEnv = env as unknown as {
-        SEARCH_AUTH_SECRET?: string;
+        SEARCH_AUTH_SECRET: {
+            get(): Promise<string>;
+        };
     };
 
     try {
@@ -32,48 +31,55 @@ export async function GET(request: Request) {
 
         // Normal YouTube search requires the normal-search password.
         if (query?.trim()) {
+            const authSecret = await searchEnv.SEARCH_AUTH_SECRET.get();
+
             if (
-                !searchEnv.SEARCH_AUTH_SECRET ||
+                !authSecret ||
                 !(await verifyAuthToken(
                     getAuthCookie(request),
                     "normal",
-                    searchEnv.SEARCH_AUTH_SECRET
+                    authSecret,
                 ))
             ) {
                 return Response.json(
-                    { error: "Normal search authorization required", videos: [] },
-                    { status: 401 }
+                    {
+                        error: "Normal search authorization required",
+                        videos: [],
+                    },
+                    { status: 401 },
                 );
             }
 
-            const videos = await searchVideos(
-                apiKey,
-                query.trim()
-            );
+            const videos = await searchVideos(apiKey, query.trim());
 
             return Response.json({ videos });
         }
 
         // @channel search requires the separate channel-search password.
         if (username?.trim()) {
+            const authSecret = await searchEnv.SEARCH_AUTH_SECRET.get();
+
             if (
-                !searchEnv.SEARCH_AUTH_SECRET ||
+                !authSecret ||
                 !(await verifyAuthToken(
                     getAuthCookie(request),
                     "channel",
-                    searchEnv.SEARCH_AUTH_SECRET
+                    authSecret,
                 ))
             ) {
                 return Response.json(
-                    { error: "Channel search authorization required", videos: [] },
-                    { status: 401 }
+                    {
+                        error: "Channel search authorization required",
+                        videos: [],
+                    },
+                    { status: 401 },
                 );
             }
-            const foundChannelId =
-                await getChannelIdFromHandle(
-                    apiKey,
-                    username.trim()
-                );
+
+            const foundChannelId = await getChannelIdFromHandle(
+                apiKey,
+                username.trim(),
+            );
 
             if (!foundChannelId) {
                 return Response.json(
@@ -81,15 +87,11 @@ export async function GET(request: Request) {
                         error: "Channel not found",
                         videos: [],
                     },
-                    { status: 404 }
+                    { status: 404 },
                 );
             }
 
-            const videos =
-                await getChannelLatestVideos(
-                    apiKey,
-                    foundChannelId
-                );
+            const videos = await getChannelLatestVideos(apiKey, foundChannelId);
 
             return Response.json({
                 videos,
@@ -99,33 +101,22 @@ export async function GET(request: Request) {
 
         // Existing configured channel
         if (channelId) {
-            const videos =
-                await getChannelLatestVideos(
-                    apiKey,
-                    channelId
-                );
+            const videos = await getChannelLatestVideos(apiKey, channelId);
 
             return Response.json({ videos });
         }
 
         // Today / This week
-        if (
-            period !== "today" &&
-            period !== "week"
-        ) {
+        if (period !== "today" && period !== "week") {
             return Response.json(
                 {
-                    error:
-                        "period must be 'today' or 'week'",
+                    error: "period must be 'today' or 'week'",
                 },
-                { status: 400 }
+                { status: 400 },
             );
         }
 
-        const videos = await getFeedVideos(
-            apiKey,
-            period
-        );
+        const videos = await getFeedVideos(apiKey, period);
 
         return Response.json({ videos });
     } catch (error) {
@@ -133,13 +124,10 @@ export async function GET(request: Request) {
 
         return Response.json(
             {
-                error:
-                    error instanceof Error
-                        ? error.message
-                        : String(error),
+                error: error instanceof Error ? error.message : String(error),
                 videos: [],
             },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }
