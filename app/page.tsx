@@ -77,8 +77,11 @@ export default function Home() {
     setLoading(true);
 
     try {
+        const isChannelSearch = query.startsWith("@");
+        const searchParam = isChannelSearch ? "username" : "q";
+
         const response = await fetch(
-            `/api/feed?username=${encodeURIComponent(query)}`
+            `/api/feed?${searchParam}=${encodeURIComponent(query)}`
         );
 
         const data: FeedResponse =
@@ -86,7 +89,10 @@ export default function Home() {
 
         if (!response.ok) {
             throw new Error(
-                data.error ?? "Channel not found"
+                data.error ??
+                    (isChannelSearch
+                        ? "Channel not found"
+                        : "Search failed")
             );
         }
 
