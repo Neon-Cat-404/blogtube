@@ -6,6 +6,10 @@ import {
     getChannelIdFromHandle,
     searchVideos,
 } from "@/app/lib/youtube";
+import {
+    getAuthCookie,
+    verifyAuthToken,
+} from "@/app/lib/searchAuth;
 
 export async function GET(request: Request) {
     const url = new URL(request.url);
@@ -15,6 +19,10 @@ export async function GET(request: Request) {
     const username = url.searchParams.get("username");
     const query = url.searchParams.get("q");
 
+    const searchEnv = env as unknown as {
+        SEARCH_AUTH_SECRET?: string;
+    };
+
     try {
         const apiKey = env.YOUTUBE_API_KEY;
 
@@ -22,8 +30,22 @@ export async function GET(request: Request) {
             throw new Error("YOUTUBE_API_KEY is not available");
         }
 
-        // Normal search: YouTube video search
+        // Normal YouTube search requires the normal-search password.
         if (query?.trim()) {
+            if (
+                !searchEnv.SEARCH_AUTH_SECRET ||
+                !(await verifyAuthToken(
+                    getAuthCookie(request),
+                    "normal",
+                    searchEnv.SEARCH_AUTH_SECRET
+                ))
+            ) {
+                return Response.json(
+                    { error: "Normal search authorization required", videos: [] },
+                    { status: 401 }
+                );
+            }
+
             const videos = await searchVideos(
                 apiKey,
                 query.trim()
@@ -32,8 +54,21 @@ export async function GET(request: Request) {
             return Response.json({ videos });
         }
 
-        // Search for a channel by username / @handle
+        // @channel search requires the separate channel-search password.
         if (username?.trim()) {
+            if (
+                !searchEnv.SEARCH_AUTH_SECRET ||
+                !(await verifyAuthToken(
+                    getAuthCookie(request),
+                    "channel",
+                    searchEnv.SEARCH_AUTH_SECRET
+                ))
+            ) {
+                return Response.json(
+                    { error: "Channel search authorization required", videos: [] },
+                    { status: 401 }
+                );
+            }
             const foundChannelId =
                 await getChannelIdFromHandle(
                     apiKey,
