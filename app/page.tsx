@@ -79,10 +79,48 @@ export default function Home() {
     try {
         const isChannelSearch = query.startsWith("@");
         const searchParam = isChannelSearch ? "username" : "q";
+        const authType = isChannelSearch ? "channel" : "normal";
 
-        const response = await fetch(
-            `/api/feed?${searchParam}=${encodeURIComponent(query)}`
-        );
+        async function runSearch() {
+            return fetch(
+                `/api/feed?${searchParam}=${encodeURIComponent(query)}`
+            );
+        }
+
+        let response = await runSearch();
+
+        // Search is protected separately for normal and @channel searches.
+        if (response.status === 401) {
+            const password = window.prompt(
+                isChannelSearch
+                    ? "Enter channel search password:"
+                    : "Enter normal search password:"
+            );
+
+            if (password === null) {
+                setLoading(false);
+                return;
+            }
+
+            const authResponse = await fetch("/api/search-auth", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    type: authType,
+                    password,
+                }),
+            });
+
+            if (!authResponse.ok) {
+                window.alert("Incorrect password.");
+                setLoading(false);
+                return;
+            }
+
+            response = await runSearch();
+        }
 
         const data: FeedResponse =
             await response.json();
