@@ -4,6 +4,7 @@ import {
     getFeedVideos,
     getChannelLatestVideos,
     getChannelIdFromHandle,
+    searchVideos,
 } from "@/app/lib/youtube";
 
 export async function GET(request: Request) {
@@ -12,12 +13,23 @@ export async function GET(request: Request) {
     const period = url.searchParams.get("period");
     const channelId = url.searchParams.get("channel");
     const username = url.searchParams.get("username");
+    const query = url.searchParams.get("q");
 
     try {
         const apiKey = env.YOUTUBE_API_KEY;
 
         if (!apiKey) {
             throw new Error("YOUTUBE_API_KEY is not available");
+        }
+
+        // Normal search: YouTube video search
+        if (query?.trim()) {
+            const videos = await searchVideos(
+                apiKey,
+                query.trim()
+            );
+
+            return Response.json({ videos });
         }
 
         // Search for a channel by username / @handle
