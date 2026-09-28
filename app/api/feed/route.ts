@@ -9,7 +9,7 @@ import {
 import {
     getAuthCookie,
     verifyAuthToken,
-} from "@/app/lib/searchAuth;
+} from "@/app/lib/searchAuth";
 
 export async function GET(request: Request) {
     const url = new URL(request.url);
